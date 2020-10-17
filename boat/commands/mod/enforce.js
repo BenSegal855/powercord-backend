@@ -24,7 +24,6 @@ const config = require('../../../config.json')
 const task = require('../../tasks')
 
 const USAGE_STR = `Usage: ${config.discord.prefix}enforce [mention] [ruleID]`
-const EMPTY_ENTRY = {cases: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
 
 module.exports = async function (msg, args) {
   if (!msg.member.permission.has('manageMessages')) {
@@ -42,7 +41,9 @@ module.exports = async function (msg, args) {
   const target = args.shift().replace(/<@!?(\d+)>/, '$1')
   const rule = parseInt(args[0])
   const actions = await processRule(msg, rule)
-  const entry = await msg._client.mongo.collection('enforce').findOne({ _id: target }) || EMPTY_ENTRY
+  const entry = await msg._client.mongo.collection('enforce').findOne({ _id: target }) || {
+    cases: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  }
 
   punish(msg, target, actions[entry.cases[rule - 1]++], rule)
 
@@ -53,7 +54,7 @@ module.exports = async function (msg, args) {
   )
 }
 
-async function processRule(msg, id) {
+async function processRule (msg, id) {
   const messages = await msg._client.getMessages(config.discord.ids.channelRules)
   let rules
   messages.reverse().forEach(msg => {
@@ -63,7 +64,7 @@ async function processRule(msg, id) {
 
   const match = rules.match(new RegExp(`\\[0?${id}] (([^\\[]*)([^\\d]*)([^\\]]*))`))
   if (!match) {
-    return msg.channel.createMessage(`This rule doesn't exist.\n${USAGE_STR}\n\n${INFO_STR}`)
+    return msg.channel.createMessage('This rule doesn\'t exist.')
   }
 
   const rule = match[1].split('\n').map(s => s.trim()).join(' ')
@@ -76,12 +77,12 @@ async function processRule(msg, id) {
   return rule.slice(0, rule.length - 4).split('Actions:')[1].trim().split(' -> ')
 }
 
-async function punish(msg, target, sentence, rule) {
+async function punish (msg, target, sentence, rule) {
+  const entry = task.EMPTY_TASK_OBJ
   switch (sentence) {
     case 'warning':
-      return msg.channel.createMessage(`<@${target}>, you have broken rule ${rule}. More serious action will be taken the next time you do so`)
+      return msg.channel.createMessage(`<@${target}>, you have broken rule ${rule}. More serious action will be taken the next time you do so.`)
     case '2h mute':
-      const entry = task.EMPTY_TASK_OBJ
       entry.type = 'unmute'
       entry.target = target
       entry.mod = `${msg.author.username}#${msg.author.discriminator}`
@@ -89,7 +90,6 @@ async function punish(msg, target, sentence, rule) {
       msg._client.mongo.collection('tasks').insertOne(entry)
       return task.mute(msg._client, target, `${msg.author.username}#${msg.author.discriminator}`, `Breaking rule ${rule} (for 2h)`)
     case '12h mute':
-      const entry = task.EMPTY_TASK_OBJ
       entry.type = 'unmute'
       entry.target = target
       entry.mod = `${msg.author.username}#${msg.author.discriminator}`
@@ -97,7 +97,6 @@ async function punish(msg, target, sentence, rule) {
       msg._client.mongo.collection('tasks').insertOne(entry)
       return task.mute(msg._client, target, `${msg.author.username}#${msg.author.discriminator}`, `Breaking rule ${rule} (for 12h)`)
     case '3d mute':
-      const entry = task.EMPTY_TASK_OBJ
       entry.type = 'unmute'
       entry.target = target
       entry.mod = `${msg.author.username}#${msg.author.discriminator}`
@@ -105,7 +104,6 @@ async function punish(msg, target, sentence, rule) {
       msg._client.mongo.collection('tasks').insertOne(entry)
       return task.mute(msg._client, target, `${msg.author.username}#${msg.author.discriminator}`, `Breaking rule ${rule} (for 3d)`)
     case '7d mute':
-      const entry = task.EMPTY_TASK_OBJ
       entry.type = 'unmute'
       entry.target = target
       entry.mod = `${msg.author.username}#${msg.author.discriminator}`
