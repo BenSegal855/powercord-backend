@@ -45,6 +45,10 @@ module.exports = async function (msg, args) {
     cases: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
   }
 
+  if (target === msg.author.id) {
+    return msg.channel.createMessage('I thought you don\'t break rules')
+  }
+
   punish(msg, target, actions[entry.cases[rule - 1]++], rule)
 
   msg._client.mongo.collection('enforce').updateOne(
@@ -114,5 +118,7 @@ async function punish (msg, target, sentence, rule) {
       return task.mute(msg._client, target, `${msg.author.username}#${msg.author.discriminator}`, `Breaking rule ${rule}`)
     case 'indefinite ban':
       return task.ban(msg._client, target, `${msg.author.username}#${msg.author.discriminator}`, `Breaking rule ${rule}`)
+    default:
+      return msg.channel.createMessage(`Unable to process \`${sentence}\`, please mod manualy.`)
   }
 }
