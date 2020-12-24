@@ -58,10 +58,6 @@ const utils = {
     }
   },
 
-  plurialify (count, word) {
-    return count === 1 ? word : `${word}s`
-  },
-
   humanTime (time) {
     const y = Math.floor(time / 31536000e3)
     const d = Math.floor((time - y * 31536000e3) / 86400e3)
